@@ -252,56 +252,8 @@
 </template>
 
 <script>
-import Vuex from "vuex";
-import Vue from "vue";
-
-Vue.use(Vuex);
-// fake API call //
-let inventory = {
-  chips: {
-    stock: 40
-  }
-};
-var pingInventory = function(item) {
-  return new Promise(resolve => {
-    setTimeout(function() {
-      resolve(inventory[item]);
-    }, 3000);
-  });
-};
-
-const store = new Vuex.Store({
-  state: {
-    supply: 40,
-    isRestocking: false,
-    isDispensing: false
-  },
-  actions: {
-    fetchFromInventory(context) {
-      context.commit("isRestocking", true);
-      pingInventory("chips")
-        .then(inventory => {
-          context.commit("stockItems", inventory.stock);
-        })
-        .finally(() => context.commit("isRestocking", false));
-    },
-    dispense(context) {
-      context.commit("dispense");
-    }
-  },
-  getters: {},
-  mutations: {
-    isRestocking(state, payload) {
-      state.isRestocking = payload;
-    },
-    dispense(state) {
-      state.supply--;
-    },
-    stockItems(state) {
-      state.supply = 40;
-    }
-  }
-});
+import { mapActions, mapState } from "vuex";
+import store from "../store";
 export default {
   name: "VendingMachineAdmin",
   store: store,
@@ -311,26 +263,25 @@ export default {
     };
   },
   computed: {
-    supply() {
-      return this.$store.state.supply;
-    },
-    isRestocking() {
-      return this.$store.state.isRestocking;
-    },
+    ...mapState(["supply", "isRestocking", "isDispensing"]),
     isInLoadingState() {
-      return this.$store.state.isRestocking || this.isDispensing;
+      return this.isRestocking || this.isDispensing;
     }
   },
   methods: {
+    ...mapActions({
+      dispenseItem: "dispense",
+      restocking: "fetchFromInventory"
+    }),
     dispense() {
       this.isDispensing = true;
       setTimeout(() => {
-        this.$store.dispatch("dispense");
+        this.dispenseItem();
         this.isDispensing = false;
       }, 3000);
     },
     restock() {
-      this.$store.dispatch("fetchFromInventory");
+      this.restocking();
     }
   }
 };
